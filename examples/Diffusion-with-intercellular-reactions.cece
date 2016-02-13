@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<simulation world-size="160um 90um" dt="0.5ms" iterations="10000" background="black">
+
+    <parameter name="T1" value="0.1uM" />
+
+    <plugin name="cell" />
+    <plugin name="diffusion" />
+    <plugin name="object-generator" />
+    <plugin name="streamlines" />
+    <plugin name="diffusion-streamlines" />
+    <plugin name="stochastic-reactions" />
+
+    <program name="produce-gfp" language="stochastic-reactions">
+<![CDATA[
+        null > 0.3 > env GFP;
+]]>
+   </program>
+   <program name="produce-rfp" language="stochastic-reactions">
+<![CDATA[
+        null > 0.3 > env RFP;
+]]>
+    </program>
+    <program name="detect-rfp" language="stochastic-reactions">
+<![CDATA[
+        env RFP > 10 > GFP;
+]]>
+    </program>
+    <program name="detect-gfp" language="stochastic-reactions">
+<![CDATA[
+        if env GFP > T1: null < 0.1, 10 > GFP;
+]]>
+   </program>
+
+    <!-- Define diffusion module -->
+    <module name="diffusion" grid="320 180">
+        <signal name="GFP" diffusion-rate="50um2/s" degradation-rate="0.01/s" color="green" saturation="10nM" />
+        <signal name="RFP" diffusion-rate="50um2/s" degradation-rate="0.01/s" color="red" saturation="10nM" />
+    </module>
+
+    <!-- Object generator -->
+    <module name="object-generator">
+        <object class="cell.Yeast" rate="20/s" programs="produce-gfp" position="-80um 0" size="0 80um" />
+        <object class="cell.Yeast" rate="20/s" programs="produce-rfp" position="-80um 0" size="0 80um" />
+    </module>
+
+    <!-- Enable streamlines with diffusion -->
+    <module name="streamlines" grid="160 90" inlet-velocity="500um/s" />
+    <module name="diffusion-streamlines" />
+
+    <object class="cell.Yeast" type="static" position="0 30um" />
+    <object class="cell.Yeast" type="static" position="0 20um" />
+    <object class="cell.Yeast" type="static" position="0 10um" />
+    <object class="cell.Yeast" type="static" position="0 0" />
+    <object class="cell.Yeast" type="static" position="0 -10um" />
+    <object class="cell.Yeast" type="static" position="0 -20um" />
+    <object class="cell.Yeast" type="static" position="0 -30um" />
+</simulation>
+
