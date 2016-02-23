@@ -1,0 +1,7 @@
+<simulation world-size="200um 200um" dt="1ms" name="pepe" background="black">
+
+<plugin name="chemostat" pipe-top="9um" pipe-radius="10um" size="50um" visible="true"/>
+
+
+
+</simulation>
