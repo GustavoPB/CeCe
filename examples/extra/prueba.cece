@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <!-- Simulation definition -->
-<simulation world-size="200um 200um" dt="1ms" background="black" length-coefficient="1e-1">
+<simulation world-size="200um 150um" dt="5ms" background="white" length-coefficient="1e-1">
 
     <plugin name="cell" />
     <plugin name="object-generator" />
-    <plugin name="chemostat" pipe-top="9um" pipe-radius="10um" size="50um" visible="true"/>
+    <plugin name="streamlines" />
+    <plugin name="chemostat" pipe-top="20um" pipe-radius="5um" size="80um" visible="true"/>
 
     <!-- Generate yeast cells -->
     <module name="object-generator">
-        <!--<object class="cell.Yeast" rate="20/s" velocity="500um/s 0" position="-95um 0" size="0um 80um" />-->
-        <object class="cell.Yeast" rate="20/s" velocity="500um/s 0" position-min="-100 91" position-max="-100 71"/>
+        <object class="cell.Yeast" rate="100/s" velocity="500um/s 0" volume="2um3" position-min="-95 45" position-max="-95 55"/>
     </module>
 
-    
+    <!--<object class="obstacle.Polygon" position="0 200" vertices="0 0 0 -50" show="true" />-->
+    <module name="streamlines" grid="200 150" inlet-velocity="2000um/s" layout="barrier outlet barrier inlet"/>
 </simulation>
 
