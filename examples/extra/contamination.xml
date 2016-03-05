@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<simulation world-size="480um 270um" dt="120s" iterations="6000" background="white">
+
+    <!-- Use python plugins - register automatic plugins Python plugin loader -->
+    <plugin name="python" />
+
+    <!-- Pheromone detection threshold -->
+    <parameter name="T1" value="1nM" />
+
+    <!-- Constitutive pheronome production -->
+    <program name="produce-pheromone" language="stochastic-reactions-intercellular">
+<![CDATA[
+        null > 0.1 > env_S1;
+]]>
+    </program>
+
+    <!-- Pheromone detection program -->
+    <program name="detect-pheromone" language="stochastic-reactions-intercellular">
+<![CDATA[
+        if env_S1 > T1: null < 0.0001, 0.1 > RFP;
+]]>
+    </program>
+
+    <!-- Define diffusion module -->
+    <module name="diffusion" grid="320 180">
+        <!-- Define allowed signal in diffusion -->
+        <signal name="S1" diffusion-rate="50um2/s" degradation-rate="0.001/s" color="transparent" saturation="1nM" />
+    </module>
+
+    <!-- Object generator -->
+    <module name="object-generator">
+        <!-- Generate contaminous cells -->
+        <object class="cell.Yeast"
+                probability="0.005"
+                programs="produce-pheromone"
+                active="2000-7000"
+                position-min="-100um -100um"
+                position-max="100um 100um"
+        >
+            <!-- Yeast contains some GFP to be recognisable in simulation -->
+            <molecule name="GFP" amount="1000" />
+        </object>
+    </module>
+
+    <!-- Define module that swich from growth mode to detection mode -->
+    <module name="python:modeSwitcher">
+<![CDATA[
+def update(dt, simulation):
+    if simulation.iteration == 2000:
+        print "Switching to detection mode..."
+        simulation.timeStep = 1.0
+]]>
+    </module>
+
+    <!-- Stores cell count into CSV file -->
+    <module name="python:cellCount">
+<![CDATA[
+rate = 0.005
+
+csvfile = open('contamination.' + str(rate) + '.csv', 'wb')
+csvfile.write('iteration;totalTime;rate;RFP\n')
+
+def update(dt, simulation):
+    global rate
+    limit = 2000
+    if simulation.iteration >= limit:
+        rfp = 0
+        for i in xrange(0, simulation.objectCount):
+            object = simulation.getObject(i)
+            if object.className == "cell.Yeast":
+                rfp += object.moleculeCount('RFP')
+
+        csvfile.write(str(simulation.iteration - limit) + ';' + str(simulation.totalTime - limit * 120) + ';' + str(rate) + ';' + str(rfp) + '\n')
+        csvfile.flush()
+]]>
+    </module>
+
+    <object class="cell.Yeast"
+            programs="detect-pheromone"
+            growth-rate="0.4e-4/s"
+            volume="40um3"
+            volume-max="80um3"
+            volume-bud-create="60um3"
+            volume-bud-release="40um3" />
+
+</simulation>
+
