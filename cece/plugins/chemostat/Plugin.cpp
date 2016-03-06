@@ -139,9 +139,6 @@ class ChemostatApi : public plugin::Api
             obstacle->initShapes();*/
 
         	//PoC
-        	auto obstacle = simulation.buildObject("obstacle.Polygon");
-            auto& shapes = obstacle->getMutableShapes();
-            shapes.resize(1);
             const auto sizeHalf = size * 0.5;
 
             StaticArray<units::Length, 10> borders{{
@@ -157,10 +154,13 @@ class ChemostatApi : public plugin::Api
 				worldSizeHalf.getHeight() - pipeTop - size.getHeight()
             }};
 
-            //}
+         {	//Upper part
+            auto obstacle = simulation.buildObject("obstacle.Polygon");
+            auto& shapes = obstacle->getMutableShapes();
+            shapes.resize(1);
 
             DynamicArray<PositionVector> vertices;
-            //Upper part
+
             vertices.push_back(PositionVector{borders[0], borders[2]});
             vertices.push_back(PositionVector{borders[1], borders[2]});
             vertices.push_back(PositionVector{borders[1], borders[9]});
@@ -170,8 +170,26 @@ class ChemostatApi : public plugin::Api
 
             shapes[0] = Shape::makeEdges(vertices);
     		obstacle->initShapes();
-            obstacle->setVisible(visible);
-       // }
+    		obstacle->setVisible(visible);
+        }
+         {	//Bottom Part
+        	 auto obstacle = simulation.buildObject("obstacle.Polygon");
+        	 auto& shapes = obstacle->getMutableShapes();
+        	 shapes.resize(1);
+
+        	 DynamicArray<PositionVector> vertices;
+
+			 vertices.push_back(PositionVector{borders[0], borders[8]});
+			 vertices.push_back(PositionVector{borders[4], borders[8]});
+			 vertices.push_back(PositionVector{borders[4], borders[7]});
+			 vertices.push_back(PositionVector{borders[1], borders[7]});
+			 vertices.push_back(PositionVector{borders[1], borders[3]});
+			 vertices.push_back(PositionVector{borders[0], borders[3]});
+
+			 shapes[0] = Shape::makeEdges(vertices);
+			 obstacle->initShapes();
+			 obstacle->setVisible(visible);
+         }
     }
 };
 
