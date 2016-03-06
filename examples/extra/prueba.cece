@@ -15,4 +15,3 @@
     <!-- <object class="obstacle.Polygon" position="0 55" vertices="0 0 0 -40" show="true" /> -->
     <module name="streamlines" grid="200 150" inlet-velocity="2000um/s" layout="barrier outlet barrier inlet"/>
 </simulation>
-

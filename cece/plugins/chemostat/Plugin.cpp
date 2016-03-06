@@ -63,7 +63,7 @@ class ChemostatApi : public plugin::Api
         const auto pipeRadius = config.get<units::Length>("pipe-radius");
         const auto size = config.get<Vector<units::Length>>("size");
         const auto visible = config.get("visible", false);
-
+        /*
         // Upper part
         {
             auto obstacle = simulation.buildObject("obstacle.Polygon");
@@ -136,9 +136,42 @@ class ChemostatApi : public plugin::Api
 
             shapes[0] = Shape::makeEdges(vertices);
 
-            obstacle->initShapes();
+            obstacle->initShapes();*/
+
+        	//PoC
+        	auto obstacle = simulation.buildObject("obstacle.Polygon");
+            auto& shapes = obstacle->getMutableShapes();
+            shapes.resize(1);
+            const auto sizeHalf = size * 0.5;
+
+            StaticArray<units::Length, 10> borders{{
+            	-worldSizeHalf.getWidth() - units::um(1),
+            	worldSizeHalf.getWidth() + units::um(1),
+				worldSizeHalf.getHeight() + units::um(1),
+				-worldSizeHalf.getHeight() - units::um(1),
+				-sizeHalf.getWidth(),
+				sizeHalf.getWidth(),
+				worldSizeHalf.getHeight() - pipeTop,
+				worldSizeHalf.getHeight() - pipeTop - 2 * pipeRadius - size.getHeight(),
+				worldSizeHalf.getHeight() - pipeTop - 2 * pipeRadius,
+				worldSizeHalf.getHeight() - pipeTop - size.getHeight()
+            }};
+
+            //}
+
+            DynamicArray<PositionVector> vertices;
+            //Upper part
+            vertices.push_back(PositionVector{borders[0], borders[2]});
+            vertices.push_back(PositionVector{borders[1], borders[2]});
+            vertices.push_back(PositionVector{borders[1], borders[9]});
+            vertices.push_back(PositionVector{borders[5], borders[9]});
+            vertices.push_back(PositionVector{borders[5], borders[6]});
+            vertices.push_back(PositionVector{borders[0], borders[6]});
+
+            shapes[0] = Shape::makeEdges(vertices);
+    		obstacle->initShapes();
             obstacle->setVisible(visible);
-        }
+       // }
     }
 };
 
