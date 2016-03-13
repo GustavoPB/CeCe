@@ -55,10 +55,23 @@ using namespace cece::simulator;
 class XmlLoader : public loader::Loader
 {
 
+    /**
+     * @brief Read simulation from input stream.
+     *
+     * @param context    Plugin context.
+     * @param is         Source stream.
+     * @param filename   Source file name.
+     * @param parameters Initialization parameters.
+     *
+     * @return Created simulation.
+     */
     UniquePtr<Simulation> fromStream(plugin::Context& context, InStream& source,
-        const FilePath& filename) const override
+        const FilePath& filename, ViewPtr<const Parameters> parameters) const override
     {
         auto simulation = makeUnique<Simulation>(context);
+
+        if (parameters)
+            simulation->getParameters().merge(*parameters);
 
         pugi::xml_document doc;
         pugi::xml_parse_result result = doc.load(source);
@@ -69,19 +82,39 @@ class XmlLoader : public loader::Loader
         // Create configuration
         const config::Configuration config(
             makeUnique<plugin::xml::ConfigImplementation>(doc.document_element()),
-            filename
+            filename,
+            &simulation->getParameters()
         );
 
         // Configure simulation
-        simulation->configure(config);
+        simulation->loadConfig(config);
 
         return simulation;
     }
 
 
+    /**
+     * @brief Write simulation into output stream.
+     *
+     * @param os         Output stream.
+     * @param simulation Source simulation.
+     */
     void toStream(OutStream& os, const Simulation& simulation, const FilePath& filename) const override
     {
-        // TODO: implement
+        pugi::xml_document doc;
+        doc.append_child("simulation");
+
+        // Create output configuration
+        config::Configuration config(
+            makeUnique<plugin::xml::ConfigImplementation>(doc.document_element()),
+            filename
+        );
+
+        // Store configuration
+        simulation.storeConfig(config);
+
+        // Save configuration
+        doc.save(os);
     }
 
 };

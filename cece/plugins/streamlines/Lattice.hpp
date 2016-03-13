@@ -34,7 +34,8 @@
 #include "cece/core/StaticArray.hpp"
 
 // Plugin
-#include "cece/plugins/streamlines/LatticeCell.hpp"
+#include "cece/plugins/streamlines/Node.hpp"
+#include "cece/plugins/streamlines/Dynamics.hpp"
 
 /* ************************************************************************ */
 
@@ -61,7 +62,7 @@ public:
     /**
      * @brief Container type.
      */
-    using ContainerType = core::Grid<LatticeCell>;
+    using ContainerType = core::Grid<Node>;
 
 
     /**
@@ -93,7 +94,7 @@ public:
      *
      * @return
      */
-    LatticeCell& operator[](const CoordinateType& coord) noexcept
+    Node& operator[](const CoordinateType& coord) noexcept
     {
         return get(coord);
     }
@@ -106,7 +107,7 @@ public:
      *
      * @return
      */
-    const LatticeCell& operator[](const CoordinateType& coord) const noexcept
+    const Node& operator[](const CoordinateType& coord) const noexcept
     {
         return get(coord);
     }
@@ -147,7 +148,7 @@ public:
      *
      * @return
      */
-    LatticeCell& get(const CoordinateType& coord) noexcept
+    Node& get(const CoordinateType& coord) noexcept
     {
         return m_data[coord];
     }
@@ -160,7 +161,7 @@ public:
      *
      * @return
      */
-    const LatticeCell& get(const CoordinateType& coord) const noexcept
+    const Node& get(const CoordinateType& coord) const noexcept
     {
         return m_data[coord];
     }
@@ -174,7 +175,7 @@ public:
      *
      * @return
      */
-    LatticeCell& getBack(const CoordinateType& coord) noexcept
+    Node& getBack(const CoordinateType& coord) noexcept
     {
         return m_dataBack[coord];
     }
@@ -189,7 +190,7 @@ public:
      *
      * @return
      */
-    const LatticeCell& getBack(const CoordinateType& coord) const noexcept
+    const Node& getBack(const CoordinateType& coord) const noexcept
     {
         return m_dataBack[coord];
     }
@@ -219,11 +220,15 @@ public:
 
 
     /**
-     * @brief Compute lattice collisions.
-     *
-     * @param omega
+     * @brief Init lattice equilibrium.
      */
-    void collide(LatticeCell::ValueType omega);
+    void initEquilibrium();
+
+
+    /**
+     * @brief Compute lattice collisions.
+     */
+    void collide();
 
 
     /**
@@ -237,7 +242,7 @@ public:
      *
      * @param omega
      */
-    void collideAndStream(LatticeCell::ValueType omega);
+    void collideAndStream();
 
 
     /**
@@ -245,7 +250,7 @@ public:
      *
      * @param dynamics
      */
-    void setDynamics(LatticeCell::Dynamics dynamics);
+    void setDynamics(ViewPtr<Dynamics> dynamics);
 
 
     /**
@@ -253,18 +258,18 @@ public:
      *
      * @param dynamics
      */
-    void fixupObstacles(LatticeCell::Dynamics dynamics) noexcept;
+    void fixupObstacles(ViewPtr<Dynamics> dynamics) noexcept;
 
 
 // Private Data Members
 public:
 
     /// Current lattice data.
-    core::Grid<LatticeCell> m_data;
+    core::Grid<Node> m_data;
 
 #if !DEV_PLUGIN_streamlines_SWAP_TRICK
     /// Temporaty lattice data.
-    core::Grid<LatticeCell> m_dataBack;
+    core::Grid<Node> m_dataBack;
 #endif
 };
 

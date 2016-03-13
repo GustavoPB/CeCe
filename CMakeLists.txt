@@ -77,10 +77,6 @@ if (APPLE)
     set(OSX_LIB_DIRS "" CACHE STRING "Additional directories for libraries packaged in Bundle")
 endif ()
 
-if (CONFIG_RENDER_ENABLE)
-    option(CONFIG_RENDER_TEXT_ENABLE "Enable support for text rendering" On)
-endif ()
-
 # If simulator should be thread safe
 set(THREAD_SAFE Off)
 
@@ -175,18 +171,6 @@ set(Boost_USE_STATIC_LIBS On)
 find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
-if (CONFIG_RENDER_TEXT_ENABLE)
-    # FreeType is used for rendering
-    find_package(Freetype)
-
-    if (FREETYPE_FOUND)
-        add_definitions(-DCONFIG_RENDER_TEXT_ENABLE=1)
-    else ()
-        message(WARNING "FreeType not found, disabling support")
-        set(CONFIG_RENDER_TEXT_ENABLE Off)
-    endif ()
-endif ()
-
 # ######################################################################### #
 
 # Directory for configuration file
@@ -269,6 +253,7 @@ endif ()
 # Build additional tools
 if (DEV_BUILD_TOOLS)
     add_subdirectory(tools/shader-convert)
+    add_subdirectory(tools/format)
 endif()
 
 # ######################################################################### #

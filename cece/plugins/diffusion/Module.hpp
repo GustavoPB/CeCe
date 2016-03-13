@@ -41,7 +41,9 @@
 #include "cece/core/Units.hpp"
 #include "cece/core/Grid.hpp"
 #include "cece/core/Range.hpp"
+#include "cece/core/UniquePtr.hpp"
 #include "cece/core/InStream.hpp"
+#include "cece/core/VectorUnits.hpp"
 #include "cece/module/Module.hpp"
 
 #ifdef CECE_ENABLE_RENDER
@@ -118,17 +120,18 @@ public:
 public:
 
 
-#ifdef CECE_ENABLE_RENDER
-
     /**
      * @brief Constructor.
+     *
+     * @param simulation
      */
-    Module() noexcept
+    explicit Module(simulator::Simulation& simulation) noexcept
+        : module::Module(simulation)
     {
+#ifdef CECE_ENABLE_RENDER
         setZOrder(100);
-    }
-
 #endif
+    }
 
 
 // Public Accessors
@@ -822,19 +825,15 @@ public:
     /**
      * @brief Load module configuration.
      *
-     * @param simulation Current simulation.
-     * @param config     Source configuration.
+     * @param config Source configuration.
      */
-    void loadConfig(simulator::Simulation& simulation, const config::Configuration& config) override;
+    void loadConfig(const config::Configuration& config) override;
 
 
     /**
      * @brief Update module state.
-     *
-     * @param simulation Simulation object.
-     * @param dt         Simulation time step.
      */
-    void update(simulator::Simulation& simulation, units::Time dt) override;
+    void update() override;
 
 
 #ifdef CECE_ENABLE_RENDER
@@ -842,10 +841,9 @@ public:
     /**
      * @brief Render module.
      *
-     * @param simulation Current simulation.
-     * @param context    Rendering context.
+     * @param context Rendering context.
      */
-    void draw(const simulator::Simulation& simulation, render::Context& context) override;
+    void draw(render::Context& context) override;
 
 
     /**
@@ -908,18 +906,15 @@ protected:
      * @brief Update signal.
      *
      * @param step Size of one grid cell.
-     * @param dt   Delta time.
      * @param id   Signal identifier.
      */
-    void updateSignal(const PositionVector& step, units::Time dt, SignalId id);
+    void updateSignal(const PositionVector& step, SignalId id);
 
 
     /**
      * @brief Update obstacle map.
-     *
-     * @param simulation
      */
-    void updateObstacles(simulator::Simulation& simulation);
+    void updateObstacles();
 
 
 // Private Data Members

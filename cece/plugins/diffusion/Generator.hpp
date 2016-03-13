@@ -33,8 +33,9 @@
 #include "cece/core/Units.hpp"
 #include "cece/core/ViewPtr.hpp"
 #include "cece/core/Pair.hpp"
+#include "cece/core/VectorUnits.hpp"
 #include "cece/module/Module.hpp"
-#include "cece/simulator/Simulation.hpp"
+#include "cece/simulator/IterationType.hpp"
 
 // Plugin
 #include "cece/plugins/diffusion/Module.hpp"
@@ -61,6 +62,13 @@ public:
     using ProductionRate = units::Divide<units::MolarConcentration, units::Time>::type;
 
 
+// Public Ctors & Dtors
+public:
+
+
+    using module::Module::Module;
+
+
 // Public Operations
 public:
 
@@ -68,19 +76,15 @@ public:
     /**
      * @brief Load module configuration.
      *
-     * @param simulation Current simulation.
-     * @param config     Source configuration.
+     * @param config Source configuration.
      */
-    void loadConfig(simulator::Simulation& simulation, const config::Configuration& config) override;
+    void loadConfig(const config::Configuration& config) override;
 
 
     /**
      * @brief Update module state.
-     *
-     * @param simulation Simulation object.
-     * @param dt         Simulation time step.
      */
-    void update(simulator::Simulation& simulation, units::Time dt) override;
+    void update() override;
 
 
 // Private Structures

@@ -44,7 +44,7 @@
 #include "cece/core/FilePath.hpp"
 #include "cece/module/Module.hpp"
 #include "cece/object/Object.hpp"
-#include "cece/simulator/Simulation.hpp"
+#include "cece/simulator/IterationType.hpp"
 
 #ifdef CECE_ENABLE_RENDER
 #  include "cece/render/Context.hpp"
@@ -107,7 +107,7 @@ public:
 public:
 
 
-#if defined(CECE_ENABLE_RENDER) && DEV_PLUGIN_streamlines_RENDER
+#if defined(CECE_ENABLE_RENDER)
 
     /// Flag for debug drawing.
     static constexpr DrawFlags DRAW_DEBUG_MAGNITUDE = 0x01;
@@ -145,8 +145,10 @@ public:
 
     /**
      * @brief Constructor.
+     *
+     * @param simulation
      */
-    Module();
+    Module(simulator::Simulation& simulation);
 
 
     /**
@@ -186,7 +188,7 @@ public:
      *
      * @return
      */
-    InletVelocities getInletVelocities() const noexcept
+    const InletVelocities& getInletVelocities() const noexcept
     {
         return m_inletVelocities;
     }
@@ -204,35 +206,13 @@ public:
 
 
     /**
-     * @brief Returns fixup coefficient.
+     * @brief Returns init iteration count.
      *
      * @return
      */
-    RealType getCoefficient() const noexcept
+    simulator::IterationCount getInitIterations() const noexcept
     {
-        return m_coefficient;
-    }
-
-
-    /**
-     * @brief Returns relaxation time.
-     *
-     * @return
-     */
-    RealType getTau() const noexcept
-    {
-        return m_tau;
-    }
-
-
-    /**
-     * @brief Returns inner iteration count.
-     *
-     * @return
-     */
-    simulator::IterationCount getInnerIterations() const noexcept
-    {
-        return m_innerIterations;
+        return m_initIterations;
     }
 
 
@@ -241,9 +221,9 @@ public:
      *
      * @return
      */
-    simulator::IterationCount getInitIterations() const noexcept
+    simulator::IterationCount getInnerIterations() const noexcept
     {
-        return m_initIterations;
+        return m_innerIterations;
     }
 
 
@@ -269,7 +249,7 @@ public:
     }
 
 
-#if defined(CECE_ENABLE_RENDER) && DEV_PLUGIN_streamlines_RENDER
+#if defined(CECE_ENABLE_RENDER)
 
     /**
      * @brief If debug flag is set.
@@ -295,6 +275,61 @@ public:
     }
 
 #endif
+
+
+    /**
+     * @brief Returns characteristic length.
+     *
+     * @return
+     */
+    units::Length getCharLength() const noexcept
+    {
+        return m_charLength;
+    }
+
+
+    /**
+     * @brief Returns characteristic time.
+     *
+     * @return
+     */
+    units::Time getCharTime() const noexcept
+    {
+        return m_charTime;
+    }
+
+
+    /**
+     * @brief Returns number of nodes in LB along characteristic length.
+     *
+     * @return
+     */
+    unsigned int getNumberNodes() const noexcept
+    {
+        return m_numberNodes;
+    }
+
+
+    /**
+     * @brief Returns number of time steps in LB for units conversion.
+     *
+     * @return
+     */
+    unsigned int getNumberSteps() const noexcept
+    {
+        return m_numberSteps;
+    }
+
+
+    /**
+     * @brief Returns fluid dynamics.
+     *
+     * @return
+     */
+    ViewPtr<Dynamics> getFluidDynamics() const noexcept
+    {
+        return m_fluidDynamics;
+    }
 
 
 // Public Mutators
@@ -336,24 +371,13 @@ public:
 
 
     /**
-     * @brief Set fixup coefficient.
+     * @brief Set init iteration count.
      *
-     * @param coefficient
+     * @param iterations
      */
-    void setCoefficient(RealType coefficient) noexcept
+    void setInitIterations(simulator::IterationCount iterations) noexcept
     {
-        m_coefficient = coefficient;
-    }
-
-
-    /**
-     * @brief Set relaxation time.
-     *
-     * @param tau
-     */
-    void setTau(RealType tau) noexcept
-    {
-        m_tau = tau;
+        m_initIterations = iterations;
     }
 
 
@@ -365,17 +389,6 @@ public:
     void setInnerIterations(simulator::IterationCount iterations) noexcept
     {
         m_innerIterations = iterations;
-    }
-
-
-    /**
-     * @brief Set init iteration count.
-     *
-     * @param iterations
-     */
-    void setInitIterations(simulator::IterationCount iterations) noexcept
-    {
-        m_initIterations = iterations;
     }
 
 
@@ -401,7 +414,7 @@ public:
     }
 
 
-#if defined(CECE_ENABLE_RENDER) && DEV_PLUGIN_streamlines_RENDER
+#if defined(CECE_ENABLE_RENDER)
 
     /**
      * @brief Set debug velocity magnitude scale.
@@ -416,6 +429,63 @@ public:
 #endif
 
 
+    /**
+     * @brief Set characteristic length.
+     *
+     * @param length
+     */
+    void setCharLength(units::Length length) noexcept
+    {
+        m_charLength = length;
+    }
+
+
+    /**
+     * @brief Set characteristic time.
+     *
+     * @param time
+     */
+    void setCharTime(units::Time time) noexcept
+    {
+        m_charTime = time;
+    }
+
+
+    /**
+     * @brief Set number of nodes in LB for units conversion.
+     *
+     * @param nodes
+     */
+    void setNumberNodes(unsigned int nodes) noexcept
+    {
+        Assert(nodes > 0);
+        m_numberNodes = nodes;
+    }
+
+
+    /**
+     * @brief Set number of time steps in LB for units conversion.
+     *
+     * @param steps
+     */
+    void setNumberSteps(unsigned int steps) noexcept
+    {
+        Assert(steps > 0);
+        m_numberSteps = steps;
+    }
+
+
+    /**
+     * @brief Set fluid dynamics.
+     *
+     * @param dynamics
+     */
+    void setFluidDynamics(UniquePtr<Dynamics> dynamics) noexcept
+    {
+        m_fluidDynamics = std::move(dynamics);
+    }
+
+
 // Public Operations
 public:
 
@@ -423,35 +493,29 @@ public:
     /**
      * @brief Initialize lattice.
      *
-     * @param simulation
+     * @param termFlag
      */
-    void init(simulator::Simulation& simulation);
+    void init(AtomicBool& termFlag) override;
 
 
     /**
      * @brief Initialize barriers.
-     *
-     * @param simulation
      */
-    void initBarriers(simulator::Simulation& simulation);
+    void initBarriers();
 
 
     /**
      * @brief Load module configuration.
      *
-     * @param simulation Current simulation.
-     * @param config     Source configuration.
+     * @param config Source configuration.
      */
-    void loadConfig(simulator::Simulation& simulation, const config::Configuration& config) override;
+    void loadConfig(const config::Configuration& config) override;
 
 
     /**
      * @brief Update module state.
-     *
-     * @param simulation Simulation object.
-     * @param dt         Simulation time step.
      */
-    void update(simulator::Simulation& simulation, units::Time dt) override;
+    void update() override;
 
 
 #ifdef CECE_ENABLE_RENDER
@@ -459,22 +523,99 @@ public:
     /**
      * @brief Render module.
      *
-     * @param simulation Current simulation.
-     * @param context    Rendering context.
+     * @param context Rendering context.
      */
-    void draw(const simulator::Simulation& simulation, render::Context& context) override;
+    void draw(render::Context& context) override;
 
 #endif
 
 
     /**
-     * @brief Calculate maximum velocity.
+     * @brief Convert length from LB to physical.
      *
-     * @param dl Grid cell size.
+     * @param length
      *
      * @return
      */
-    VelocityVector calculateMaxVelocity(PositionVector dl) const noexcept;
+    units::Length convertLength(RealType length) const noexcept
+    {
+        const auto charLength = m_charLength / getNumberNodes();
+        return charLength * length;
+    }
+
+
+    /**
+     * @brief Convert length from physical to LB.
+     *
+     * @param length
+     *
+     * @return
+     */
+    RealType convertLength(units::Length length) const noexcept
+    {
+        const auto charLength = m_charLength / getNumberNodes();
+        return length / charLength;
+    }
+
+
+    /**
+     * @brief Convert velocity from LB to physical.
+     *
+     * @param vel
+     *
+     * @return
+     */
+    units::Velocity convertVelocity(RealType vel) const noexcept
+    {
+        const auto charTime = m_charTime / getNumberSteps();
+        const auto charLength = m_charLength / getNumberNodes();
+        return charLength / charTime * vel;
+    }
+
+
+    /**
+     * @brief Convert velocity from LB to physical.
+     *
+     * @param vel
+     *
+     * @return
+     */
+    VelocityVector convertVelocity(Vector<RealType> vel) const noexcept
+    {
+        const auto charTime = m_charTime / getNumberSteps();
+        const auto charLength = m_charLength / getNumberNodes();
+        return charLength / charTime * vel;
+    }
+
+
+    /**
+     * @brief Convert velocity from physical to LB.
+     *
+     * @param vel
+     *
+     * @return
+     */
+    RealType convertVelocity(units::Velocity vel) const noexcept
+    {
+        const auto charTime = m_charTime / getNumberSteps();
+        const auto charLength = m_charLength / getNumberNodes();
+        return charTime / charLength * vel;
+    }
+
+
+    /**
+     * @brief Convert velocity from physical to LB.
+     *
+     * @param vel
+     *
+     * @return
+     */
+    Vector<RealType> convertVelocity(VelocityVector vel) const noexcept
+    {
+        const auto charTime = m_charTime / getNumberSteps();
+        const auto charLength = m_charLength / getNumberNodes();
+        return charTime / charLength * vel;
+    }
 
 
 // Protected Operations
@@ -482,42 +623,46 @@ protected:
 
 
     /**
-     * @brief Update obstacle map from objects.
+     * @brief Create fluid dynamics.
      *
-     * @param simulation
-     * @param vMax
+     * @return
      */
-    void updateObstacleMap(const simulator::Simulation& simulation, const VelocityVector& vMax);
+    virtual UniquePtr<Dynamics> createFluidDynamics() const;
+
+
+    /**
+     * @brief Create border dynamics.
+     *
+     * @param pos
+     *
+     * @return
+     */
+    virtual UniquePtr<Dynamics> createBorderDynamics(LayoutPosition pos) const;
+
+
+    /**
+     * @brief Update obstacle map from objects.
+     */
+    void updateObstacleMap();
 
 
     /**
      * @brief Apply streamlines to objects.
-     *
-     * @param simulation
-     * @param dt
-     * @param vMax
      */
-    void applyToObjects(const simulator::Simulation& simulation, units::Time dt, const VelocityVector& vMax);
+    void applyToObjects();
 
     /**
      * @brief Apply streamlines to object.
      *
      * @param object
-     * @param simulation
-     * @param dt
-     * @param vMax
      */
-    void applyToObject(object::Object& object, const simulator::Simulation& simulation,
-        units::Time dt, const VelocityVector& vMax);
+    void applyToObject(object::Object& object);
 
 
     /**
      * @brief Apply boundary conditions.
-     *
-     * @param simulation
-     * @param vMax
      */
-    void applyBoundaryConditions(const simulator::Simulation& simulation, const VelocityVector& vMax);
+    void applyBoundaryConditions();
 
 
     /**
@@ -536,14 +681,11 @@ protected:
 
 
     /**
-     * @brief Calculate coefficient.
-     *
-     * @param step Time step.
-     * @param dl   Grid cell size.
+     * @brief Calculate viscosity from relaxation time.
      *
      * @return
      */
-    RealType calculateCoefficient(units::Time step, PositionVector dl) const noexcept;
+    RealType calculateViscosity() const noexcept;
 
 
     /**
@@ -551,30 +693,42 @@ protected:
      *
      * @return
      */
-    RealType calculateViscosity() const noexcept
+    RealType calculateTau() const noexcept;
+
+
+    /**
+     * @brief Calculate relaxation frequency.
+     *
+     * @return
+     */
+    RealType calculateOmega() const noexcept
     {
-        return (getTau() - 0.5) / 3.0;
+        return 1.0 / calculateTau();
     }
 
 
     /**
      * @brief Init border barrier.
      *
-     * @param simulation
      * @param pos
      */
-    void initBorderBarrier(simulator::Simulation& simulation, LayoutPosition pos);
+    void initBorderBarrier(LayoutPosition pos);
 
 
     /**
      * @brief Init border inlet/outlet.
      *
-     * @param simulation
      * @param pos
-     * @param vMax
      */
-    void initBorderInletOutlet(const simulator::Simulation& simulation,
-        LayoutPosition pos, const VelocityVector& vMax);
+    void initBorderInletOutlet(LayoutPosition pos);
+
+
+    /**
+     * @brief Print streamlines informations.
+     *
+     * @param simulation
+     */
+    virtual void printInfo();
 
 
     /**
@@ -593,6 +747,18 @@ protected:
     void loadFromFile(const FilePath& filename);
 
 
+    /**
+     * @brief Write header into data file.
+     */
+    void storeDataHeader();
+
+
+    /**
+     * @brief Write data file.
+     */
+    void storeData();
+
+
 // Private Data Members
 private:
 
@@ -602,17 +768,23 @@ private:
     /// Fluid viscosity (of Water).
     units::KinematicViscosity m_kinematicViscosity = units::mm2_s(0.658);
 
-    /// Relaxation time.
-    RealType m_tau = 1;
-
-    /// Fixup coefficient.
-    RealType m_coefficient = 1;
+    /// Number of init iterations.
+    simulator::IterationCount m_initIterations = 0;
 
     /// Number of inner iterations.
-    simulator::IterationCount m_innerIterations = 5;
+    simulator::IterationCount m_innerIterations = 1;
 
-    /// Number of init iterations.
-    simulator::IterationCount m_initIterations = 100;
+    /// Characteristic length.
+    units::Length m_charLength = units::um(1);
+
+    /// Characteristic time.
+    units::Time m_charTime = units::s(1);
+
+    /// Number of LB nodes for units conversions.
+    unsigned int m_numberNodes = 1;
+
+    /// Number of LB time steps for units conversions
+    unsigned int m_numberSteps = 1;
 
     /// Path to initialization file.
     FilePath m_initFile;
@@ -629,10 +801,13 @@ private:
     /// Barriers created for layout.
     StaticArray<ViewPtr<object::Object>, LayoutPosCount> m_layoutBarriers;
 
+    /// Boundary dynamics
+    StaticArray<UniquePtr<Dynamics>, LayoutPosCount> m_boundaries;
+
     /// Use dynamic objects as obstacles
     bool m_dynamicObjectsObstacles = false;
 
-#if defined(CECE_ENABLE_RENDER) && DEV_PLUGIN_streamlines_RENDER
+#if defined(CECE_ENABLE_RENDER)
     /// Render grid for velocities
     render::ObjectPtr<render::GridVector> m_drawableDirections;
 
@@ -646,6 +821,8 @@ private:
     /// Access mutex.
     mutable Mutex m_mutex;
 #endif
+
+    UniquePtr<Dynamics> m_fluidDynamics;
 
     /// Outstream for streamlines data
     UniquePtr<OutStream> m_dataOut;

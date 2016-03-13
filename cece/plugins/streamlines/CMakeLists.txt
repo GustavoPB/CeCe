@@ -1,5 +1,5 @@
 # ######################################################################### #
-# Georgiev Lab (c) 2015                                                     #
+# Georgiev Lab (c) 2016                                                     #
 # ######################################################################### #
 # Department of Cybernetics                                                 #
 # Faculty of Applied Sciences                                               #
@@ -26,19 +26,10 @@
 # Options
 option(DEV_PLUGIN_streamlines_SWAP_TRICK "Enable or disable streamlines swap-trick for computation speedup" Off)
 
-if (CONFIG_RENDER_ENABLE)
-    option(DEV_PLUGIN_streamlines_RENDER "Enable or disable streamlines rendering" Off)
-endif ()
-
 # ######################################################################### #
 
 if (DEV_PLUGIN_streamlines_SWAP_TRICK)
     add_definitions(-DDEV_PLUGIN_streamlines_SWAP_TRICK=1)
-endif ()
-
-# Enable debug rendering
-if (DEV_PLUGIN_streamlines_RENDER)
-    add_definitions(-DDEV_PLUGIN_streamlines_RENDER=1)
 endif ()
 
 # ######################################################################### #
@@ -46,12 +37,23 @@ endif ()
 # Sources
 set(SRCS
     Plugin.cpp
+    Descriptor.hpp
+    Descriptor.cpp
     Module.hpp
     Module.cpp
     Lattice.hpp
     Lattice.cpp
-    LatticeCell.hpp
-    LatticeCell.cpp
+    Node.hpp
+    Dynamics.hpp
+    Dynamics.cpp
+    NoDynamics.hpp
+    NoDynamics.cpp
+    BgkDynamics.hpp
+    BgkDynamics.cpp
+    BounceBackDynamics.hpp
+    BounceBackDynamics.cpp
+    ZouHeDynamics.hpp
+    ZouHeDynamics.cpp
 )
 
 # Build plugin

@@ -38,6 +38,7 @@
 #include "cece/core/TimeMeasurement.hpp"
 #include "cece/object/Object.hpp"
 #include "cece/simulator/Simulation.hpp"
+#include "cece/simulator/TimeMeasurement.hpp"
 
 /* ************************************************************************ */
 
@@ -160,9 +161,11 @@ InStream& operator>>(InStream& is, ObjectDesc::Distributions& distr)
 
 /* ************************************************************************ */
 
-void Module::update(simulator::Simulation& simulation, units::Time dt)
+void Module::update()
 {
-    auto _ = measure_time("object-generator", simulator::TimeMeasurementIterationOutput(simulation));
+    auto& simulation = getSimulation();
+
+    auto _ = measure_time("object-generator", simulator::TimeMeasurement(simulation));
 
     // Get current iteration number
     const auto iteration = simulation.getIteration();
@@ -174,7 +177,7 @@ void Module::update(simulator::Simulation& simulation, units::Time dt)
         if (!inRange(desc.active, iteration))
             continue;
 
-        std::bernoulli_distribution distSpawn(desc.rate * dt);
+        std::bernoulli_distribution distSpawn(desc.rate * simulation.getTimeStep());
 
         // Spawn?
         if (!distSpawn(g_gen))
@@ -223,10 +226,10 @@ void Module::update(simulator::Simulation& simulation, units::Time dt)
 
 /* ************************************************************************ */
 
-void Module::loadConfig(simulator::Simulation& simulation, const config::Configuration& config)
+void Module::loadConfig(const config::Configuration& config)
 {
     // Configure parent
-    module::Module::loadConfig(simulation, config);
+    module::Module::loadConfig(config);
 
     for (auto&& cfg : config.getConfigurations("object"))
     {

@@ -45,10 +45,7 @@
 #include "cece/plugin/Manager.hpp"
 #include "cece/config/Exception.hpp"
 #include "cece/module/FactoryManager.hpp"
-
-#if CONFIG_RENDER_TEXT_ENABLE
-#include "cece/simulator/font.hpp"
-#endif
+#include "cece/simulator/TimeMeasurement.hpp"
 
 /* ************************************************************************ */
 
@@ -300,25 +297,25 @@ void Simulation::reset()
 
 /* ************************************************************************ */
 
-bool Simulation::update(units::Duration dt)
+bool Simulation::update()
 {
     // Initialize simulation
     if (!isInitialized())
-        initialize();
+        throw RuntimeException("Simulation is not initialized");
 
     // Increase step number
     m_iteration++;
-    m_totalTime += dt;
+    m_totalTime += getTimeStep();
 
     // Clear all stored forces
     for (auto& obj : m_objects)
         obj->setForce(Zero);
 
     // Update modules
-    updateModules(dt);
+    updateModules();
 
     // Update objects
-    updateObjects(dt);
+    updateObjects();
 
     // Detect object that leaved the scene
     detectDeserters();
@@ -357,7 +354,7 @@ bool Simulation::update(units::Duration dt)
 
 #ifdef CECE_ENABLE_BOX2D_PHYSICS
     {
-        auto _ = measure_time("sim.physics", TimeMeasurementIterationOutput(this));
+        auto _ = measure_time("sim.physics", TimeMeasurement(this));
 
         m_world.Step(getPhysicsEngineTimeStep().value(), 10, 10);
     }
@@ -368,74 +365,60 @@ bool Simulation::update(units::Duration dt)
 
 /* ************************************************************************ */
 
-void Simulation::initialize()
+void Simulation::initialize(AtomicBool& termFlag)
 {
     Assert(!isInitialized());
 
     // Initialize simulation
     m_initializers.call(*this);
 
+    // Initialize modules
+    m_modules.init(termFlag);
+
     m_initialized = true;
 }
 
 /* ************************************************************************ */
 
-void Simulation::configure(const config::Configuration& config)
+void Simulation::loadConfig(const config::Configuration& config)
 {
-    // Resize world
-    {
-        auto size = config.get<SizeVector>("world-size");
-
-        if (size.getWidth() == Zero || size.getHeight() == Zero)
-            throw config::Exception("Width or height is zero!");
-
-        setWorldSize(size);
-    }
-
-    // Time step
+    setWorldSize(config.get<SizeVector>("world-size"));
     setTimeStep(config.get<units::Time>("dt"));
 
     if (config.has("length-coefficient"))
-    {
         m_converter.setLengthCoefficient(config.get<RealType>("length-coefficient"));
-    }
 
-    // Set gravity
     setGravity(config.get("gravity", getGravity()));
-
-    // Number of iterations
     setIterations(config.get("iterations", getIterations()));
-
-    // Background color
-    setBackgroundColor(config.get("background", getBackgroundColor()));
-
-#if CONFIG_RENDER_TEXT_ENABLE
-    setFontColor(config.get("text-color", getBackgroundColor().inverted()));
-#endif
-
-#if CONFIG_RENDER_TEXT_ENABLE
-    setFontSize(config.get("text-size", getFontSize()));
-#endif
-
-#if CONFIG_RENDER_TEXT_ENABLE
-    setSimulationTimeRender(config.get("show-simulation-time", isSimulationTimeRender()));
-#endif
 
 #ifdef CECE_ENABLE_RENDER
     setVisualized(config.get("visualized", isVisualized()));
+    setBackgroundColor(config.get("background", getBackgroundColor()));
 #endif
 
     // Parse plugins
     for (auto&& pluginConfig : config.getConfigurations("plugin"))
     {
         // Returns valid pointer or throws an exception
-        requirePlugin(pluginConfig.get("name"))->configure(*this, pluginConfig);
+        requirePlugin(pluginConfig.get("name"))->loadConfig(*this, pluginConfig);
     }
 
     // Parse parameters
     for (auto&& parameterConfig : config.getConfigurations("parameter"))
     {
-        setParameter(parameterConfig.get("name"), units::parse(parameterConfig.get("value")));
+        // Get parameter name
+        const auto name = parameterConfig.get("name");
+
+        // Do not override previously defined parameters
+        if (hasParameters(name))
+            continue;
+
+        if (!parameterConfig.has("value"))
+            throw InvalidArgumentException("Missing parameter value. Define "
+                "it in simulation file or as application argument");
+
+        // Store new parameter
+        setParameter(name, parameterConfig.get("value"));
     }
 
     // Register user types
@@ -487,7 +470,7 @@ void Simulation::configure(const config::Configuration& config)
 
         if (module)
         {
-            module->loadConfig(*this, moduleConfig);
+            module->loadConfig(moduleConfig);
 
             addModule(std::move(name), std::move(module));
         }
@@ -534,13 +517,80 @@ void Simulation::configure(const config::Configuration& config)
 
 /* ************************************************************************ */
 
+void Simulation::storeConfig(config::Configuration& config) const
+{
+    config.set("world-size", getWorldSize());
+    config.set("dt", getTimeStep());
+    config.set("length-coefficient", m_converter.getLengthCoefficient());
+    config.set("gravity", getGravity());
+    config.set("iterations", getIterations());
+
+#ifdef CECE_ENABLE_RENDER
+    config.set("background", getBackgroundColor());
+    config.set("visualized", isVisualized());
+#endif
+
+    // Store parameters
+    for (const auto& parameter : getParameters())
+    {
+        auto parameterConfig = config.addConfiguration("parameter");
+        parameterConfig.set("name", parameter.name);
+        parameterConfig.set("value", parameter.value);
+    }
+
+    // Store plugins
+    for (const auto& plugin : m_plugins)
+    {
+        auto pluginConfig = config.addConfiguration("plugin");
+        pluginConfig.set("name", plugin.first);
+        plugin.second->storeConfig(*this, pluginConfig);
+    }
+
+    // Store object types
+    for (const auto& type : m_objectClasses)
+    {
+        auto typeConfig = config.addConfiguration("type");
+        typeConfig.set("name", type.name);
+        typeConfig.set("base", type.baseName);
+        // TODO: rest ot configuration
+    }
+
+    // Store initializers
+    for (const auto& init : m_initializers)
+    {
+        // TODO: improve
+        auto initConfig = config.addConfiguration("init");
+        init->storeConfig(*this, initConfig);
+    }
+
+    // Store modules
+    for (const auto& module : m_modules)
+    {
+        auto moduleConfig = config.addConfiguration("module");
+        // TODO: improve
+        module.module->storeConfig(moduleConfig);
+    }
+
+    // Store programs
+    for (const auto& program : m_programs)
+    {
+        auto programConfig = config.addConfiguration("program");
+        // TODO: improve
+        program.program->storeConfig(*this, programConfig);
+    }
+
+    // TODO: store objects
+}
+
+/* ************************************************************************ */
+
 #ifdef CECE_ENABLE_RENDER
 void Simulation::draw(render::Context& context)
 {
     context.setStencilBuffer(getWorldSize().getWidth().value(), getWorldSize().getHeight().value());
 
     // Render modules
-    m_modules.draw(*this, context);
+    m_modules.draw(context);
 
     // Draw objects
     for (auto& obj : m_objects)
@@ -555,54 +605,6 @@ void Simulation::draw(render::Context& context)
         m_world.DrawDebugData();
 #endif
 
-#if CONFIG_RENDER_TEXT_ENABLE
-    context.disableStencilBuffer();
-
-    if (isSimulationTimeRender())
-    {
-        if (!m_font)
-        {
-            m_font.create(context, g_fontData);
-            m_font->setSize(getFontSize());
-        }
-
-        OutStringStream oss;
-        {
-            auto time = getTotalTime().value();
-            unsigned int seconds = time;
-            unsigned int milliseconds = static_cast<unsigned int>(time * 1000) % 1000;
-
-            const unsigned int hours = seconds / (60 * 60);
-            seconds %= (60 * 60);
-            const unsigned int minutes = seconds / 60;
-            seconds %= 60;
-
-            if (hours)
-            {
-                oss << std::setw(2) << std::setfill('0') << hours << ":";
-                oss << std::setw(2) << std::setfill('0') << minutes << ":";
-            }
-            else if (minutes)
-            {
-                oss << std::setw(2) << std::setfill('0') << minutes << ":";
-            }
-
-            oss << std::setw(2) << std::setfill('0') << seconds << ".";
-            oss << std::setw(3) << std::setfill('0') << milliseconds;
-        }
-
-        if (hasUnlimitedIterations())
-        {
-            oss << " (" << getIteration() << " / -)";
-        }
-        else
-        {
-            oss << " (" << getIteration() << " / " << getIterations() << ")";
-        }
-
-        m_font->draw(context, oss.str(), getFontColor());
-    }
-#endif
 }
 #endif
 
@@ -705,18 +707,17 @@ ViewPtr<object::Object> Simulation::query(const PositionVector& position) const 
 
 /* ************************************************************************ */
 
-void Simulation::updateModules(units::Time dt)
+void Simulation::updateModules()
 {
-    auto _ = measure_time("sim.modules", TimeMeasurementIterationOutput(this));
-
-    m_modules.update(*this, dt);
+    auto _ = measure_time("sim.modules", TimeMeasurement(this));
+    m_modules.update();
 }
 
 /* ************************************************************************ */
 
-void Simulation::updateObjects(units::Time dt)
+void Simulation::updateObjects()
 {
-    auto _ = measure_time("sim.objects", TimeMeasurementIterationOutput(this));
+    auto _ = measure_time("sim.objects", TimeMeasurement(this));
 
     // Update simulations objects
     // Can't use range-for because update can add a new object.
@@ -725,7 +726,7 @@ void Simulation::updateObjects(units::Time dt)
         auto obj = m_objects[i];
 
         Assert(obj);
-        obj->update(dt);
+        obj->update(getTimeStep());
     }
 }
 
@@ -755,7 +756,7 @@ void Simulation::detectDeserters()
 
 void Simulation::deleteObjects()
 {
-    auto _ = measure_time("sim.delete", TimeMeasurementIterationOutput(this));
+    auto _ = measure_time("sim.delete", TimeMeasurement(this));
 
     // Remove deleted objects
     m_objects.removeDeleted();

@@ -26,6 +26,10 @@
 // Must be first
 #include "cece/plugins/python/Python.hpp"
 
+// CeCe
+#include "cece/core/StringStream.hpp"
+#include "cece/simulator/Simulation.hpp"
+
 // Diffusion
 #include "cece/plugins/streamlines/Module.hpp"
 
@@ -154,10 +158,8 @@ public:
             return nullptr;
         }
 
-        auto sim = reinterpret_cast<ObjectWrapper<simulator::Simulation*>*>(simulation);
-
         // Init barriers
-        self->value->initBarriers(*sim->value);
+        self->value->initBarriers();
 
         // Return None
         return none().release();

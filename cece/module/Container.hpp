@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015                                                    */
+/* Georgiev Lab (c) 2015-2016                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -39,11 +39,9 @@
 #include "cece/core/ViewPtr.hpp"
 #include "cece/core/Pair.hpp"
 #include "cece/core/DynamicArray.hpp"
-#include "cece/core/Units.hpp"
+#include "cece/core/Atomic.hpp"
 
 /* ************************************************************************ */
-
-namespace cece { namespace simulator { class Simulation; } }
 
 #ifdef CECE_ENABLE_RENDER
 namespace cece { namespace render { class Context; } }
@@ -65,6 +63,23 @@ class Module;
  */
 class Container
 {
+
+// Public Structures
+public:
+
+
+    /**
+     * @brief Container record.
+     */
+    struct Record
+    {
+        /// Module name.
+        String name;
+
+        /// Pointer to module.
+        UniquePtr<Module> module;
+    };
+
 
 // Public Ctors & Dtors
 public:
@@ -100,6 +115,50 @@ public:
     ViewPtr<Module> get(StringView name) const noexcept;
 
 
+    /**
+     * @brief Returns begin iterator.
+     *
+     * @return
+     */
+    DynamicArray<Record>::const_iterator begin() const noexcept
+    {
+        return m_modules.begin();
+    }
+
+
+    /**
+     * @brief Returns begin iterator.
+     *
+     * @return
+     */
+    DynamicArray<Record>::const_iterator cbegin() const noexcept
+    {
+        return m_modules.cbegin();
+    }
+
+
+    /**
+     * @brief Returns end iterator.
+     *
+     * @return
+     */
+    DynamicArray<Record>::const_iterator end() const noexcept
+    {
+        return m_modules.end();
+    }
+
+
+    /**
+     * @brief Returns end iterator.
+     *
+     * @return
+     */
+    DynamicArray<Record>::const_iterator cend() const noexcept
+    {
+        return m_modules.cend();
+    }
+
+
 // Public Mutators
 public:
 
@@ -126,12 +185,23 @@ public:
 
 
     /**
-     * @brief Update all modules.
+     * @brief Initialize all modules.
      *
-     * @param simulation Simulation object.
-     * @param dt         Time step.
+     * @param termFlag Termination flag.
      */
-    void update(simulator::Simulation& simulation, units::Time dt);
+    void init(AtomicBool& termFlag);
+
+
+    /**
+     * @brief Update all modules.
+     */
+    void update();
+
+
+    /**
+     * @brief Terminate all modules.
+     */
+    void terminate();
 
 
 #ifdef CECE_ENABLE_RENDER
@@ -139,19 +209,37 @@ public:
     /**
      * @brief Render modules sorted by z-order.
      *
-     * @param simulation Current simulation.
-     * @param context    Rendering context.
+     * @param context Rendering context.
      */
-    void draw(const simulator::Simulation& simulation, render::Context& context);
+    void draw(render::Context& context);
 
 #endif
+
+// Protected Operations
+protected:
+
+
+    /**
+     * @brief Returns sorted list of modules by priority.
+     *
+     * @return
+     */
+    DynamicArray<ViewPtr<Module>> getSortedListAsc() const noexcept;
+
+
+    /**
+     * @brief Returns sorted list of modules by priority.
+     *
+     * @return
+     */
+    DynamicArray<ViewPtr<Module>> getSortedListDesc() const noexcept;
 
 
 // Private Data Members
 private:
 
     /// Stored modules.
-    DynamicArray<Pair<String, UniquePtr<Module>>> m_modules;
+    DynamicArray<Record> m_modules;
 
 };
 

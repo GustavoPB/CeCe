@@ -63,14 +63,11 @@
 #include "cece/program/Program.hpp"
 #include "cece/program/NamedContainer.hpp"
 #include "cece/plugin/Library.hpp"
+#include "cece/simulator/IterationType.hpp"
 
 #ifdef CECE_ENABLE_RENDER
 #include "cece/render/Context.hpp"
 #include "cece/render/Color.hpp"
-#include "cece/render/Object.hpp"
-#if CONFIG_RENDER_TEXT_ENABLE
-#include "cece/render/Font.hpp"
-#endif
 #endif
 
 // Box2D
@@ -92,20 +89,6 @@ namespace simulator {
 /* ************************************************************************ */
 
 /**
- * @brief Type for iteration number.
- */
-using IterationNumber = unsigned long long;
-
-/* ************************************************************************ */
-
-/**
- * @brief Type for iteration count.
- */
-using IterationCount = IterationNumber;
-
-/* ************************************************************************ */
-
-/**
  * @brief Simulation class.
  */
 class Simulation
@@ -117,7 +100,7 @@ public:
 
 
     /// Type of simulation parameter value.
-    using ParameterValueType = float;
+    using ParameterValueType = Parameters::ValueType;
 
     /// Data table container type.
     using DataTableContainer = Map<String, DataTable>;
@@ -655,45 +638,6 @@ public:
 #endif
 
 
-#if CONFIG_RENDER_TEXT_ENABLE
-    /**
-     * @brief Returns font color.
-     *
-     * return
-     */
-    const render::Color& getFontColor() const noexcept
-    {
-        return m_fontColor;
-    }
-#endif
-
-
-#if CONFIG_RENDER_TEXT_ENABLE
-    /**
-     * @brief Get font size.
-     *
-     * @return
-     */
-    unsigned int getFontSize() const noexcept
-    {
-        return m_fontSize;
-    }
-#endif
-
-
-#if CONFIG_RENDER_TEXT_ENABLE
-    /**
-     * @brief Returns if simulation time should be rendered.
-     *
-     * @return
-     */
-    bool isSimulationTimeRender() const noexcept
-    {
-        return m_simulationTimeRender;
-    }
-#endif
-
-
 // Public Mutators
 public:
 
@@ -1008,45 +952,6 @@ public:
 #endif
 
 
-#if CONFIG_RENDER_TEXT_ENABLE
-    /**
-     * @brief Set font color.
-     *
-     * @param color
-     */
-    void setFontColor(render::Color color) noexcept
-    {
-        m_fontColor = color;
-    }
-#endif
-
-
-#if CONFIG_RENDER_TEXT_ENABLE
-    /**
-     * @brief Set font size.
-     *
-     * @param size
-     */
-    void setFontSize(unsigned int size) noexcept
-    {
-        m_fontSize = size;
-    }
-#endif
-
-
-#if CONFIG_RENDER_TEXT_ENABLE
-    /**
-     * @brief Set if simulation time should be rendered.
-     *
-     * @param flag
-     */
-    void setSimulationTimeRender(bool flag) noexcept
-    {
-        m_simulationTimeRender = flag;
-    }
-#endif
-
-
 // Public Operations
 public:
 
@@ -1059,8 +964,10 @@ public:
 
     /**
      * @brief Initialize simulation.
+     *
+     * @param termFlag Termination flag.
      */
-    void initialize();
+    void initialize(AtomicBool& termFlag);
 
 
     /**
@@ -1068,28 +975,23 @@ public:
      *
      * @param config
      */
-    void configure(const config::Configuration& config);
+    void loadConfig(const config::Configuration& config);
+
+
+    /**
+     * @brief Store simulation configuration.
+     *
+     * @param config
+     */
+    void storeConfig(config::Configuration& config) const;
 
 
     /**
      * @brief Update simulation.
      *
-     * @param dt
-     *
      * @return If next step can be calculated.
      */
-    bool update(units::Duration dt);
-
-
-    /**
-     * @brief Update simulation by time step.
-     *
-     * @return If next step can be calculated.
-     */
-    bool update()
-    {
-        return update(getTimeStep());
-    }
+    bool update();
 
 
 #ifdef CECE_ENABLE_RENDER
@@ -1164,18 +1066,14 @@ protected:
 
     /**
      * @brief Update modules.
-     *
-     * @param dt Time step.
      */
-    void updateModules(units::Time dt);
+    void updateModules();
 
 
     /**
      * @brief Update objects.
-     *
-     * @param dt Time step.
      */
-    void updateObjects(units::Time dt);
+    void updateObjects();
 
 
     /**
@@ -1261,78 +1159,8 @@ private:
     bool m_drawPhysics = false;
 #endif
 
-#if CONFIG_RENDER_TEXT_ENABLE
-    /// Font renderer.
-    render::ObjectPtr<render::Font> m_font;
-#endif
-
-#if CONFIG_RENDER_TEXT_ENABLE
-    /// Font color.
-    render::Color m_fontColor = render::colors::WHITE;
-#endif
-
-#if CONFIG_RENDER_TEXT_ENABLE
-    /// Font size.
-    unsigned int m_fontSize = 30;
-#endif
-
-#if CONFIG_RENDER_TEXT_ENABLE
-    /// If time should be rendered.
-    bool m_simulationTimeRender = false;
-#endif
-
     /// Outstream for simulation objects data.
     UniquePtr<OutStream> m_dataOutObjects;
-
-};
-
-/* ************************************************************************ */
-
-/**
- * @brief Time measurement functor with printing current iteration.
- */
-struct TimeMeasurementIterationOutput
-{
-    /// Simulation.
-    ViewPtr<const Simulation> m_simulation;
-
-
-    /**
-     * @brief Constructor.
-     *
-     * @param sim Simulation.
-     */
-    explicit TimeMeasurementIterationOutput(ViewPtr<const Simulation> sim)
-        : m_simulation(sim)
-    {
-        // Nothing to do
-    }
-
-
-    /**
-     * @brief Constructor.
-     *
-     * @param sim Simulation
-     */
-    explicit TimeMeasurementIterationOutput(const Simulation& sim)
-        : m_simulation(&sim)
-    {
-        // Nothing to do
-    }
-
-
-    /**
-     * @brief Functor function.
-     *
-     * @param out  Output stream.
-     * @param name Measurement name.
-     * @param dt   Measured time.
-     */
-    void operator()(OutStream& out, const String& name, Clock::duration dt) const noexcept
-    {
-        using namespace std::chrono;
-        out << name << ";" << m_simulation->getIteration() << ";" << duration_cast<microseconds>(dt).count() << "\n";
-    }
 
 };
 
